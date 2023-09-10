@@ -73,6 +73,10 @@ int main(int argc, char *argv[])
 			}
 		}
 		break;
+	case '-':
+		fprintf(stderr, "No hyphen needed!\n");
+		printf("Usage: %s [get|post]\n", argv[0]);
+		return 1;
 	default:
 		printf("Usage: %s [get|post]\n", argv[0]);
 		return 1;
