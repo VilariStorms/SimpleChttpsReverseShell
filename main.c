@@ -1,4 +1,4 @@
-/* get and pos request demonstration with libcurl in c */
+/* http(s) reverse shell client written in C with libcurl */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
