@@ -54,25 +54,11 @@ int main(int argc, char *argv[])
 	char *output = NULL;
 	switch (argv[1][0]) {
 	case 'g':
-		while (1) {
-			output = getShell(previous);
-			if (previous != NULL) {
-				free(previous);
-				previous = NULL;
-			}
-			if (output != NULL) {
-				previous = executeCmd(
-					output +
-					3); // pointer arithmetic go brrrr
-				free(output);
-			} else {
-				sleep(1);
-			}
-		}
-		break;
 	case 'p':
 		while (1) {
-			output = postShell(previous);
+			output = (argv[1][0] == 'g') ? getShell(previous) :
+						       postShell(previous);
+			// output = postShell(previous);
 			if (previous != NULL) {
 				free(previous);
 				previous = NULL;
